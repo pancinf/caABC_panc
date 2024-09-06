@@ -34,7 +34,7 @@ option_list = list(
               help="Tissue to filter TPM and caviar file on"),
   
   make_option("--caviarThres", type="numeric", default=NULL,
-              help="eQTL recall cut-off"),
+              help="eQTL cut-off"),
 			  
   make_option("--maneOnly", type="character", default=NULL,
               help="Should only genes containing a MANE-Select transcript be used?"),
@@ -45,15 +45,15 @@ option_list = list(
   make_option("--cap", type="numeric", default=NULL,
               help="Given cap for outliers in boxplot. Equally applied to upper/lower"),
   
-  make_option("--addTag", type="character", default=NULL,
-              help="additional Tag for directory and output files")
+  make_option("--compMod ", type="character", default=NULL,
+              help="Tag. Which models are compared?")
 )
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser)
 
 if (is.null(opt$inputList) | is.null(opt$minDist) |
     is.null(opt$gtexCut) | is.null(opt$tissue) | is.null(opt$caviarThres) |
-    is.null(opt$maneOnly) | is.null(opt$outDir) | is.null(opt$cap) | is.null(opt$addTag)) {
+    is.null(opt$maneOnly) | is.null(opt$outDir) | is.null(opt$cap) | is.null(opt$compMod )) {
   print("You have to specify all inputs. Here is the help:")
   print_help(opt_parser)
   quit()
@@ -70,8 +70,8 @@ plotBox <- function(diffTable, plotMode,capVal){
 			axis.text=element_text(size=12),
 			axis.title=element_text(size=14))+
 			scale_x_discrete()
-	ggsave(filename = paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$addTag,"minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_recallCut",opt$recallCut,"_maneOnly",opt$maneOnly,"_plotMode",plotMode,capVal,"_BoxDiff.png"),p,width = 3.5,height = 4.38,dpi = 600)
-	ggsave(filename = paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$addTag,"minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_recallCut",opt$recallCut,"_maneOnly",opt$maneOnly,"_plotMode",plotMode,capVal,"_BoxDiff.pdf"),p,width = 3.5,height = 4.38)
+	ggsave(filename = paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod ,"minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_maneOnly",opt$maneOnly,"_plotMode",plotMode,capVal,"_BoxDiff.png"),p,width = 3.5,height = 4.38,dpi = 600)
+	ggsave(filename = paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod ,"minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_maneOnly",opt$maneOnly,"_plotMode",plotMode,capVal,"_BoxDiff.pdf"),p,width = 3.5,height = 4.38)
 }
 
 ###
@@ -222,13 +222,13 @@ for(i in 1:nrow(inputList)){
   }
 finalDF <- data.frame(recall = pltRec, abc = pltAbc, rankABC = pltRank, perc = pltPerc, model = pltName, eQTL = plteQTL,eQTLMatch = plteQTLMatch, ensemblID = pltEnsemblID, peakEnsemblID = pltpeakEnsemblID)
 finalDF <- finalDF[order(finalDF$eQTL, finalDF$ensemblID),]
-write.table(finalDF,paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$addTag,"minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_recallCut",opt$recallCut,"_maneOnly",opt$maneOnly,"_finalDF.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
+write.table(finalDF,paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod ,"minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_maneOnly",opt$maneOnly,"_finalDF.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
 
 ##
 ##Sign test
 stat.test <- finalDF %>%
   sign_test(rankABC~model, detailed= TRUE)
-write.table(stat.test,paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$addTag,"minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_recallCut",opt$recallCut,"_maneOnly",opt$maneOnly,"_signTable.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
+write.table(stat.test,paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod ,"minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_maneOnly",opt$maneOnly,"_signTable.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
 
 ##
 ##Write and plot paired differences + their median + number of "+","0" and "-"
@@ -236,9 +236,9 @@ finalDF$ID <- paste0(finalDF$peakEnsemblID,"_",finalDF$eQTL)
 differences <- finalDF %>%
   group_by(ID)  %>%
   reframe(Diff = combn(rankABC,2,diff))
-write.table(differences,paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$addTag,"minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_recallCut",opt$recallCut,"_maneOnly",opt$maneOnly,"_differences.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
-write.table(median(differences$Diff),paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$addTag,"minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_recallCut",opt$recallCut,"_maneOnly",opt$maneOnly,"_differencesMedian.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = FALSE,quote = FALSE)
-write.table(data.frame(table(sign(differences$Diff))),paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$addTag,"minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_recallCut",opt$recallCut,"_maneOnly",opt$maneOnly,"_differencesFrac.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
+write.table(differences,paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod ,"minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_maneOnly",opt$maneOnly,"_differences.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
+write.table(median(differences$Diff),paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod ,"minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_maneOnly",opt$maneOnly,"_differencesMedian.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = FALSE,quote = FALSE)
+write.table(data.frame(table(sign(differences$Diff))),paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod ,"minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_maneOnly",opt$maneOnly,"_differencesFrac.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
 
 ##
 ##Make boxplot

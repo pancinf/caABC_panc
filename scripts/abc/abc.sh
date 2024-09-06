@@ -31,7 +31,7 @@ echo "No Path(s) to H3K27AC-file(s) given. Please provide with the -h argument"
 exit 1
 elif [ -z ${acCol} ]
 then
-echo "No activity column number without qNorm given. Please provide with the -n argument (35 for probes with 1 H3K27AC file and 41 for probes with 2)"
+echo "No activity column number without qNorm given. Please provide with the -n argument (34 for probes with 1 H3K27AC file and 40 for probes with 2)"
 exit 1
 elif [ -z ${gencodeVers} ]
 then

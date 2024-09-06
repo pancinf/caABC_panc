@@ -3,13 +3,7 @@
 
 ###
 ###
-###Download hg38 reference
-wget -O ../../data/ref/hg38.fa.gz https://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz
-gunzip -c ../../data/ref/hg38.fa.gz > ../../data/ref/hg38.fa
-
-###
-###
-###Download gencode V44 GTF file.
+###Download gencode V44 GTF file
 wget -O ../../data/ref/gencode.v44.annotation.gtf.gz https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.annotation.gtf.gz
 gunzip -c ../../data/ref/gencode.v44.annotation.gtf.gz > ../../data/ref/gencode.v44.annotation.gtf
 
