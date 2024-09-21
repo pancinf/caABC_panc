@@ -114,7 +114,7 @@ colnames(gtexGtfMinus)[2] <- "TSS_PosGtf"
 gtexGtf <- rbind(gtexGtfPlus,gtexGtfMinus)
 
 ##
-##Read in maABC probe-model
+##Read in maABC sample-model
 abc <- fread(opt$abcPath,data.table = FALSE, select = c(1:6,12:13))
 colnames(abc) <- c("chrom","start","end","ensemblID","symbol","peakID","TSS_dist","ABC_Score")
 abc$chrom <- paste0("chr", abc$chrom)
@@ -170,7 +170,7 @@ caviar <- caviar[caviar$ensemblID_CAVIAR %in% gtexOpen$ensemblID,]
 abc <- abc[abc$ensemblID %in% gtexOpen$ensemblID,]
 
 ##
-##Match maABC to caviar
+##Match maABC to caviar (removing duplicates)
 abc <- abc[abc$TSS_dist >  opt$minDist,]
 abc$rank_maABC <- rank(x = -abc$ABC_Score,ties.method = "max")
 abc <- makeGRangesFromDataFrame(df = abc,seqnames.field = "chrom",start.field = "start",end.field = "end",starts.in.df.are.0based = TRUE, keep.extra.columns = TRUE)
@@ -181,6 +181,7 @@ abcCaviarShort <- abcCaviarShort[order(abcCaviarShort$rank_maABC),]
 abcCaviarShort$eQTLMatch <- FALSE
 abcCaviarShort$eQTLMatch[abcCaviarShort$ensemblID == abcCaviarShort$ensemblID_CAVIAR] <- TRUE
 abcCaviarShort <- abcCaviarShort[abcCaviarShort$eQTLMatch == TRUE,]
+abcCaviarShort <- abcCaviarShort[!duplicated(abcCaviarShort[,'peakEnsemblID']),]
 recall <- 0
 abcCaviarShort$recall <- recall
 for(j in 1:nrow(abcCaviarShort)){

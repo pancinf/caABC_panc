@@ -3,7 +3,7 @@
 #This script generates ABC(-like) models from ENCODE DNAse, H3K27AC and Hi-C data
 ###
 ###
-probeName=""
+sampleName=""
 h3k27acCol=""
 acCol=""
 gencodeVers=""
@@ -11,7 +11,7 @@ gencodeVers=""
 while getopts "p:h:n:g:" o;
 do
 	case $o in
-		p )	probeName=${OPTARG};;
+		p )	sampleName=${OPTARG};;
 		h )	h3k27acCol=${OPTARG};;
 		n )	acCol=${OPTARG};;
 		g )	gencodeVers=${OPTARG};;
@@ -21,9 +21,9 @@ do
 esac
 done
 
-if [ -z ${probeName} ]
+if [ -z ${sampleName} ]
 then
-echo "No probeName given. Please provide with the -p argument"
+echo "No sampleName given. Please provide with the -p argument"
 exit 1
 elif [ -z ${h3k27acCol} ]
 then
@@ -31,7 +31,7 @@ echo "No Path(s) to H3K27AC-file(s) given. Please provide with the -h argument"
 exit 1
 elif [ -z ${acCol} ]
 then
-echo "No activity column number without qNorm given. Please provide with the -n argument (34 for probes with 1 H3K27AC file and 40 for probes with 2)"
+echo "No activity column number without qNorm given. Please provide with the -n argument (34 for samples with 1 H3K27AC file and 40 for samples with 2)"
 exit 1
 elif [ -z ${gencodeVers} ]
 then
@@ -41,7 +41,7 @@ fi
 
 ##
 ##
-echo "Processed probe: ${probeName}"
+echo "Processed sample: ${sampleName}"
 
 ###
 ###
@@ -49,20 +49,28 @@ echo "Processed probe: ${probeName}"
 
 cd ../../data
 mkdir -p macsOut/
-mkdir -p macsOut/${probeName}/
+mkdir -p macsOut/${sampleName}/
 
 macs2 callpeak \
--t raw/${probeName}Dnase.bam \
--n ${probeName}.macs2 \
+-t raw/${sampleName}Dnase.bam \
+-n ${sampleName}.macs2 \
 -f BAM \
 -g hs \
 -p 0.1 \
 --call-summits \
---outdir macsOut/${probeName} \
+--outdir macsOut/${sampleName} \
 --shift -75 --extsize 150 --nomodel
 
 #Sort narrowPeak file
-bedtools sort -faidx ref/sizes.genome -i macsOut/${probeName}/${probeName}.macs2_peaks.narrowPeak > macsOut/${probeName}/${probeName}.macs2_peaks.narrowPeak.sorted
+bedtools sort -faidx ref/sizes.genome -i macsOut/${sampleName}/${sampleName}.macs2_peaks.narrowPeak > macsOut/${sampleName}/${sampleName}.macs2_peaks.narrowPeak.sorted
+
+echo "---"
+echo "---"
+echo "---"
+echo "Peaks called"
+echo "---"
+echo "---"
+echo "---"
 
 ###
 ###
@@ -71,12 +79,12 @@ mkdir -p abcReg/
 
 for transcriptType in MLT LT
 do
-	mkdir -p abcReg/${probeName}_${transcriptType}
+	mkdir -p abcReg/${sampleName}_${transcriptType}
 
 	python ../software/ABC-Enhancer-Gene-Prediction/workflow/scripts/makeCandidateRegions.py \
-	--narrowPeak macsOut/${probeName}/${probeName}.macs2_peaks.narrowPeak.sorted \
-	--accessibility raw/${probeName}Dnase.bam \
-	--outDir abcReg/${probeName}_${transcriptType} \
+	--narrowPeak macsOut/${sampleName}/${sampleName}.macs2_peaks.narrowPeak.sorted \
+	--accessibility raw/${sampleName}Dnase.bam \
+	--outDir abcReg/${sampleName}_${transcriptType} \
 	--chrom_sizes ref/sizes.genome \
 	--chrom_sizes_bed ref/sizes.genome.bed \
 	--regions_blocklist ../software/ABC-Enhancer-Gene-Prediction/reference/hg38/GRCh38_unified_blacklist.bed \
@@ -85,39 +93,63 @@ do
 	--regions_includelist ref/gencode.v${gencodeVers}.annotation_${transcriptType}_tss.bed
 done
 
+echo "---"
+echo "---"
+echo "---"
+echo "Regions extracted"
+echo "---"
+echo "---"
+echo "---"
+
 ###
 ###
 ###ABC-Activities
 mkdir -p abcAct/
 for transcriptType in MLT LT
 do
-	mkdir -p abcAct/${probeName}_${transcriptType}
+	mkdir -p abcAct/${sampleName}_${transcriptType}
 
 	python ../software/ABC-Enhancer-Gene-Prediction/workflow/scripts/run.neighborhoods.py \
-	--candidate_enhancer_regions abcReg/${probeName}_${transcriptType}/${probeName}.macs2_peaks.narrowPeak.sorted.candidateRegions.bed \
+	--candidate_enhancer_regions abcReg/${sampleName}_${transcriptType}/${sampleName}.macs2_peaks.narrowPeak.sorted.candidateRegions.bed \
 	--genes ref/gencode.v${gencodeVers}.annotation_${transcriptType}_gene.bed \
-	--DHS raw/${probeName}Dnase.bam \
+	--DHS raw/${sampleName}Dnase.bam \
 	--H3K27ac ${h3k27acCol} \
 	--default_accessibility_feature DHS \
 	--chrom_sizes ref/sizes.genome \
 	--chrom_sizes_bed ref/sizes.genome.bed  \
 	--cellType Pancreas \
-	--outdir abcAct/${probeName}_${transcriptType}
-	Rscript --vanilla ../scripts/abc/extract_activities.R --act abcAct/${probeName}_${transcriptType}/EnhancerList.txt --actOut abcAct/${probeName}_${transcriptType}/EnhancerList_act.bed \
+	--outdir abcAct/${sampleName}_${transcriptType}
+	Rscript --vanilla ../scripts/abc/extract_activities.R --act abcAct/${sampleName}_${transcriptType}/EnhancerList.txt --actOut abcAct/${sampleName}_${transcriptType}/EnhancerList_act.bed \
 	--actCol ${acCol}
 done
 
+echo "---"
+echo "---"
+echo "---"
+echo "Activities calculated"
+echo "---"
+echo "---"
+echo "---"
+
 ###
 ###
-###Extract Hi-C data
+###Extract HI-C data
 mkdir -p abcHic/
-mkdir -p abcHic/${probeName}
+mkdir -p abcHic/${sampleName}
 
 python ../software/ABC-Enhancer-Gene-Prediction/workflow/scripts/juicebox_dump_SCALE.py \
---hic_file raw/${probeName}Hic.hic \
+--hic_file raw/${sampleName}Hic.hic \
 --juicebox "java -jar ../software/juicer/juicer_tools_2.13.06.jar" \
 --resolution 5000 \
---outdir abcHic/${probeName} 
+--outdir abcHic/${sampleName}
+
+echo "---"
+echo "---"
+echo "---"
+echo "HI-C extracted"
+echo "---"
+echo "---"
+echo "---"
 
 ###
 ###
@@ -126,12 +158,20 @@ mkdir -p finalModels/
 
 ##
 ##ABC
-STARE_ABCpp -b abcAct/${probeName}_LT/EnhancerList_act.bed -n 4 -a ref/gencode.v${gencodeVers}.annotation_LT.gtf -o finalModels/ABC_${probeName}_LT -f abcHic/${probeName} -k 5000 -t 0 -c 1 -q False -i 5_tss
+STARE_ABCpp -b abcAct/${sampleName}_LT/EnhancerList_act.bed -n 4 -a ref/gencode.v${gencodeVers}.annotation_LT.gtf -o finalModels/ABC_${sampleName}_LT -f abcHic/${sampleName} -k 5000 -t 0 -c 1 -q False -i 5_tss
 
 ##
 ##gABC
-STARE_ABCpp -b abcAct/${probeName}_LT/EnhancerList_act.bed -n 4 -a ref/gencode.v${gencodeVers}.annotation.gtf -o finalModels/gABC_${probeName}_LT -f abcHic/${probeName} -k 5000 -t 0 -c 1 -q True -i all_tss
+STARE_ABCpp -b abcAct/${sampleName}_LT/EnhancerList_act.bed -n 4 -a ref/gencode.v${gencodeVers}.annotation.gtf -o finalModels/gABC_${sampleName}_LT -f abcHic/${sampleName} -k 5000 -t 0 -c 1 -q True -i all_tss
 
 ##
 ##M-AD-ABC
-STARE_ABCpp -b abcAct/${probeName}_MLT/EnhancerList_act.bed -n 4 -a ref/gencode.v${gencodeVers}.annotation_MLT.gtf -o finalModels/maABC_${probeName}_MLT -f abcHic/${probeName} -k 5000 -t 0 -c 1 -q True -i 5_tss
+STARE_ABCpp -b abcAct/${sampleName}_MLT/EnhancerList_act.bed -n 4 -a ref/gencode.v${gencodeVers}.annotation_MLT.gtf -o finalModels/maABC_${sampleName}_MLT -f abcHic/${sampleName} -k 5000 -t 0 -c 1 -q True -i 5_tss
+
+echo "---"
+echo "---"
+echo "---"
+echo "Final models generated"
+echo "---"
+echo "---"
+echo "---"
