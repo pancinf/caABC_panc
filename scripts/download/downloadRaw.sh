@@ -1,5 +1,5 @@
 #!/bin/bash
-#This script downloads and preprocesses pancreatic ENCODE data for ABC models..
+#This script downloads and preprocesses pancreatic ENCODE data for ABC models + juicer_tools (required for HI-C-processing)
 
 ###
 ###
@@ -51,3 +51,7 @@ echo "H3K27ac downloaded"
 echo "---"
 echo "---"
 echo "---"
+
+##
+##Download juicer_tools
+wget -O ../../software/juicer/juicer_tools_2.13.06.jar https://github.com/aidenlab/Juicebox/releases/download/v2.13.06/juicer_tools_2.13.06.jar > ../../software/juicer/downloadJuicer.log 2>&1

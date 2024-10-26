@@ -32,17 +32,11 @@ option_list = list(
   make_option("--gtexCut", type="numeric", default=NULL,
               help="Minimum TPM value of GTEx expression for a gene to be included"),
   
-  make_option("--tissue", type="character", default=NULL,
-              help="Tissue to filter TPM and caviar file on"),
-  
   make_option("--caviarThres", type="numeric", default=NULL,
               help="eQTL cut-off"),
-			  
-  make_option("--maneOnly", type="character", default=NULL,
-              help="Should only genes containing a MANE-Select transcript be used?"),
-			
-  make_option("--outDir", type="character", default=NULL,
-              help="Name of output directory"),
+
+  make_option("--tissue", type="character", default=NULL,
+              help="Tissue to filter TPM and caviar file on"),
 			  
   make_option("--cap", type="numeric", default=NULL,
               help="Given cap for outliers in boxplot. Equally applied to upper/lower"),
@@ -50,15 +44,15 @@ option_list = list(
   make_option("--compMod ", type="character", default=NULL,
               help="Tag. Which models are compared?"),
 
-  make_option("--recCut", type="numeric", default=NULL,
-              help="Desired eQTL recall cut-off")
+  make_option("--outDir", type="character", default=NULL,
+              help="Name of output directory")
 )
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser)
 
 if (is.null(opt$inputList) | is.null(opt$minDist) |
-    is.null(opt$gtexCut) | is.null(opt$tissue) | is.null(opt$caviarThres) |
-    is.null(opt$maneOnly) | is.null(opt$outDir) | is.null(opt$cap) | is.null(opt$compMod) | is.null(opt$recCut)) {
+    is.null(opt$gtexCut) | is.null(opt$caviarThres) | is.null(opt$tissue) |
+    is.null(opt$cap) | is.null(opt$compMod) | is.null(opt$outDir)) {
   print("You have to specify all inputs. Here is the help:")
   print_help(opt_parser)
   quit()
@@ -75,8 +69,8 @@ plotBox <- function(diffTable, plotMode,capVal){
 			axis.text=element_text(size=12),
 			axis.title=element_text(size=14))+
 			scale_x_discrete()
-	ggsave(filename = paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod ,"_minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_maneOnly",opt$maneOnly,"_plotMode", plotMode,capVal,"_BoxDiff.png"), plot = p,width = 3.5,height = 4.38,dpi = 600)
-	ggsave(filename = paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod ,"_minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_maneOnly",opt$maneOnly,"_plotMode", plotMode,capVal,"_BoxDiff.pdf"), plot = p,width = 3.5,height = 4.38)
+	ggsave(filename = paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod,"_minDist",opt$minDist,"_",opt$tissue,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_plotMode", plotMode,capVal,"_BoxDiff.png"), plot = p,width = 3.5,height = 4.38,dpi = 600)
+	ggsave(filename = paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod,"_minDist",opt$minDist,"_",opt$tissue,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_plotMode", plotMode,capVal,"_BoxDiff.pdf"), plot = p,width = 3.5,height = 4.38)
 }
 
 ###
@@ -86,27 +80,19 @@ plotBox <- function(diffTable, plotMode,capVal){
 ##
 ##Make output directory and read inputList
 dir.create(paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir), showWarnings = FALSE)
-inputList <- fread(paste0("../../data/GTEx/evalGTEx/inputLists/",opt$inputList), data.table = FALSE)
+inputList <- fread(paste0("../../data/GTEx/evalGTEx/inputLists/",opt$inputList), data.table = FALSE, header = TRUE)
 
 ##
 ##Read in gtex genes and filter on expression
-gtex <- fread(input = "../../data/GTEx/raw/GTExTPM.gct",data.table = FALSE)
+gtex <- fread(input = "../../data/GTEx/raw/GTExTPM.gct",data.table = FALSE, header = TRUE)
 gtex <- gtex[,colnames(gtex) %in% c("Name","Description",opt$tissue)]
 colnames(gtex) <- c("ensemblID","symbol","tissueTPM")
 gtex$ensemblID <- gsub("\\..*","",gtex$ensemblID)
 gtex <- gtex[gtex$tissueTPM >= opt$gtexCut,]
 
 ##
-##Subset to MANE genes
-if(opt$maneOnly == "Yes"){
-	maneGenes <- fread(input = "../../data/ref/mane.bed",data.table = FALSE, select = 18)
-	maneGenes <- gsub("\\..*","",maneGenes$V18)
-	gtex <- gtex[gtex$ensemblID %in% maneGenes,]
-}
-
-##
 ##Process caviar data
-caviar <- fread(input = "../../data/GTEx/raw/GTEx_v8_finemapping_CAVIAR/CAVIAR_Results_v8_GTEx_LD_HighConfidentVariants.gz", data.table = FALSE)
+caviar <- fread(input = "../../data/GTEx/raw/GTEx_v8_finemapping_CAVIAR/CAVIAR_Results_v8_GTEx_LD_HighConfidentVariants.gz", data.table = FALSE, header = TRUE)
 colnames(caviar)[2] <- "ensemblID_CAVIAR"
 caviar$ensemblID_CAVIAR <- gsub("\\..*","",caviar$ensemblID_CAVIAR)
 caviar <- caviar[caviar$Probability >= opt$caviarThres,]
@@ -155,7 +141,7 @@ pltpeakEnsemblID <- c()
 ##
 ##Make table of overlapping regions for both models
 for(i in 1:nrow(inputList)){
-  abc <- fread(inputList$samplePath[i],data.table = FALSE)
+  abc <- fread(inputList$samplePath[i],data.table = FALSE, header = TRUE)
   colnames(abc) <- c("chrom","start","end","ensemblID","symbol","peakID","signalValue","contact","adaptedActivity","scaledContact","intergenicScore","TSS_dist","ABC_Score")
 
   abc <- abc[abc$TSS_dist > opt$minDist,]
@@ -167,7 +153,7 @@ for(i in 1:nrow(inputList)){
 
   #Remove regions outside of GTEx eQTL annotation borders
   abc <- abc %>%
-    left_join(gtexGtf, by = "geneSymbol") %>%
+    left_join(gtexGtf, by = "geneSymbol",relationship = "many-to-many") %>%
     filter(end > (TSS_PosGtf - 1000000) & end < (TSS_PosGtf + 1000000))
   if(exists("abcFull")){
     abcFull <- rbind(abcFull,abc)   
@@ -182,7 +168,7 @@ abcFull <- abcFull[abcFull$peakEnsemblID %in% as.character(abcFullFreq$Var1),]
 ##
 ##Read in single model
 for(i in 1:nrow(inputList)){
-  abc <- fread(inputList$samplePath[i],data.table = FALSE)
+  abc <- fread(inputList$samplePath[i],data.table = FALSE, header = TRUE)
   colnames(abc) <- c("chrom","start","end","ensemblID","symbol","peakID","signalValue","contact","adaptedActivity","scaledContact","intergenicScore","TSS_dist","ABC_Score")
   abc <- makeGRangesFromDataFrame(df = abc,seqnames.field = "chrom",start.field = "start",end.field = "end",starts.in.df.are.0based = TRUE, keep.extra.columns = TRUE)
   abc <- abc[abc$TSS_dist >  opt$minDist,]
@@ -204,8 +190,8 @@ for(i in 1:nrow(inputList)){
   abcCaviarShort <- abcCaviarShort[order(abcCaviarShort$rankABC),]
   abcCaviarShort$eQTLMatch <- FALSE
   abcCaviarShort$eQTLMatch[abcCaviarShort$ensemblID == abcCaviarShort$ensemblID_CAVIAR] <- TRUE
-  abcCaviarShort <- abcCaviarShort[abcCaviarShort$eQTLMatch == TRUE,]
   abcCaviarShort <- abcCaviarShort[!duplicated(abcCaviarShort[,'peakEnsemblID']),]
+  abcCaviarShort <- abcCaviarShort[abcCaviarShort$eQTLMatch == TRUE,]
   recall <- 0
   abcCaviarShort$recall <- recall
   for(j in 1:nrow(abcCaviarShort)){
@@ -227,13 +213,7 @@ for(i in 1:nrow(inputList)){
   }
 finalDF <- data.frame(recall = pltRec, abc = pltAbc, rankABC = pltRank, perc = pltPerc, model = pltName, eQTL = plteQTL,eQTLMatch = plteQTLMatch, ensemblID = pltEnsemblID, peakEnsemblID = pltpeakEnsemblID)
 finalDF <- finalDF[order(finalDF$eQTL, finalDF$ensemblID),]
-write.table(finalDF, paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod ,"_minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_maneOnly",opt$maneOnly,"_finalDF.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
-
-##
-##Sign test
-stat.test <- finalDF %>%
-  sign_test(rankABC~model, detailed= TRUE)
-write.table(stat.test, paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod ,"_minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_maneOnly",opt$maneOnly,"_signTable.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
+write.table(finalDF, paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod,"_minDist",opt$minDist,"_",opt$tissue,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_finalDF.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
 
 ##
 ##Write and plot paired differences + their statistics + number of "+","0" and "-"
@@ -241,9 +221,28 @@ finalDF$ID <- paste0(finalDF$peakEnsemblID,"_",finalDF$eQTL)
 differences <- finalDF %>%
   group_by(ID)  %>%
   reframe(Diff = combn(rankABC,2,diff))
-write.table(differences, paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod ,"_minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_maneOnly",opt$maneOnly,"_differences.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
-write.table(data.frame(quantile = names(quantile(differences$Diff)), value = quantile(differences$Diff)), paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod ,"_minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_maneOnly",opt$maneOnly,"_differencesQuantiles.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
-write.table(data.frame(table(sign(differences$Diff))), paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod ,"_minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_maneOnly",opt$maneOnly,"_differencesFrac.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
+write.table(differences, paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod,"_minDist",opt$minDist,"_",opt$tissue,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_differences.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
+write.table(data.frame(quantile = names(quantile(differences$Diff)), value = quantile(differences$Diff)), paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod,"_minDist",opt$minDist,"_",opt$tissue,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_differencesQuantiles.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
+write.table(data.frame(table(sign(differences$Diff))), paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod,"_minDist",opt$minDist,"_",opt$tissue,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_differencesFrac.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
+
+##
+##Sign test
+stat.test <- finalDF %>%
+  sign_test(rankABC~model, detailed= TRUE)
+if(quantile(differences$Diff,.5) > 0 & stat.test$estimate < 0){
+	stat.test$estimate <- abs(stat.test$estimate)
+	conf.low <- -1 * stat.test$conf.high
+	conf.high <- -1 * stat.test$conf.low
+	stat.test$conf.low <- conf.low
+	stat.test$conf.high <- conf.high
+}else if(quantile(differences$Diff,.5) < 0 & stat.test$estimate > 0){
+	stat.test$estimate <- -(stat.test$estimate)
+	conf.low <- -1 * stat.test$conf.high
+	conf.high <- -1 * stat.test$conf.low
+	stat.test$conf.low <- conf.low
+	stat.test$conf.high <- conf.high
+}
+write.table(stat.test, paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod,"_minDist",opt$minDist,"_",opt$tissue,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_signTable.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
 
 ##
 ##Make plots
@@ -258,33 +257,3 @@ differencesCapped <- differences
 differencesCapped$Diff[differencesCapped$Diff > upperY] <- upperY
 differencesCapped$Diff[differencesCapped$Diff < lowerY] <- lowerY
 plotBox(diffTable = differencesCapped, plotMode = "Capped", capVal = opt$cap)
-
-#Make pie chart of top 25% abs differences of top enhancers
-finalDF <- finalDF[finalDF$recall <= opt$recCut,]
-finalDF$peakEnsemblID <- paste0(finalDF$peakEnsemblID,"_",finalDF$eQTL)
-differences <- differences[differences$ID %in% finalDF$peakEnsemblID,]
-
-differences$absDif <- abs(differences$Diff)
-differences$newModel <- FALSE
-differences$newModel[differences$Diff < 0] <- TRUE
-differences$rank <- rank(-differences$absDif, ties.method = "max")
-differences <- differences[differences$rank < (nrow(differences)/4),]
-freqsModelWin <- table(differences$newModel)
-freqsModelWinNum <- round(x = as.numeric(freqsModelWin[2] / (freqsModelWin[1] + freqsModelWin[2])), digits = 2)
-
-pieDf <- data.frame (model = c(inputList$modelName[2],inputList$modelName[1]), topHitsFrac = c(freqsModelWinNum, (1 - freqsModelWinNum)))
-
-pieDf <- pieDf %>% 
-  mutate(csum = rev(cumsum(rev(topHitsFrac))), 
-         pos = topHitsFrac/2 + lead(csum, 1),
-         pos = if_else(is.na(pos), topHitsFrac/2, pos))
-
-p <- ggplot(pieDf, aes(x = "" , y = topHitsFrac, fill = fct_inorder(model))) +
-  geom_col(width = 1, color = 1) +
-  coord_polar(theta = "y") +
-  geom_label_repel(data = pieDf,
-                   aes(y = pos, label = topHitsFrac),
-                   size = 4.5, nudge_x = 1, show.legend = FALSE) +
-  guides(fill = guide_legend(title = "model")) +
-  theme_void()
-  ggsave(filename = paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod ,"_minDist",opt$minDist,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_maneOnly",opt$maneOnly,"_recCut",opt$recCut,"_topDifRelEnhPie.pdf"), plot = p)

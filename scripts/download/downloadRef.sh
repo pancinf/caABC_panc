@@ -17,45 +17,13 @@ echo "---"
 
 ###
 ###
-###Integrate MANE information
-
-###
-###
-###Get bigBedToBed
-wget -O ../../software/ucscTools/bigBedToBed https://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/bigBedToBed
-chmod +x ../../software/ucscTools/bigBedToBed
-
-echo "---"
-echo "---"
-echo "---"
-echo "bigBedToBed downloaded"
-echo "---"
-echo "---"
-echo "---"
-
-###
-###
-###Process MANE
-wget -O ../../data/ref/mane.bb https://hgdownload.soe.ucsc.edu/gbdb/hg38/mane/mane.bb
-../../software/ucscTools/bigBedToBed ../../data/ref/mane.bb ../../data/ref/mane.bed
-
-echo "---"
-echo "---"
-echo "---"
-echo "MANE downloaded"
-echo "---"
-echo "---"
-echo "---"
-
-###
-###
-###Subset gencode GTF to longest transcript + MANE
+###Subset gencode GTF to longest transcript + canonical transcript
 Rscript --vanilla processGtf.R --ref ../../data/ref/ --gencodeName gencode.v44.annotation
 
 echo "---"
 echo "---"
 echo "---"
-echo "Longest-Transcript and MANE based GTF created"
+echo "Longest-transcript and Canonical-transcript based GTF created"
 echo "---"
 echo "---"
 echo "---"

@@ -1,4 +1,4 @@
-#This script compares cage seq signals for longest transcript and MANE transcript based TSS
+#This script compares CAGE-seq signals for longest transcript and Canonical transcript based TSS
 
 ###
 ###
@@ -17,11 +17,11 @@ library(rstatix)
 ###Arguments
 option_list = list(
   
-  make_option("--maneTranscripts", type="character", default=NULL,
-              help="Name of mane genes file"),
+  make_option("--canonicalTrans", type="character", default=NULL,
+              help="Name of canoonical transcript file"),
   
-  make_option("--longestTranscripts", type="character", default=NULL,
-              help="Name of longest genes file"),
+  make_option("--longestTrans", type="character", default=NULL,
+              help="Name of longest transcript file"),
   
   make_option("--cagePlus", type="character", default=NULL,
               help="Name of cage seq plus strand file"),
@@ -36,7 +36,7 @@ option_list = list(
               help="minimum TPM threshold of expression"),
   
   make_option("--minDist", type="numeric", default=5000,
-              help="How far should the Longest-transcript and Mane-transcript TSS be distant from another to be considered in the analysis?"),
+              help="How far should the Longest-transcript and Canonical-transcript TSS be distant from another to be considered in the analysis?"),
   
   make_option("--maxDist", type="numeric", default=250,
               help="Maximum Distance to look for the maximum cage seq signal around a TSS"),
@@ -47,7 +47,7 @@ option_list = list(
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser)
 
-if (is.null(opt$maneTranscripts) | is.null(opt$longestTranscripts) | is.null(opt$cagePlus) | is.null(opt$cageMinus) |
+if (is.null(opt$canonicalTrans) | is.null(opt$longestTrans) | is.null(opt$cagePlus) | is.null(opt$cageMinus) |
     is.null(opt$tissue) | is.null(opt$gtexCut) | is.null(opt$cap)){
   print("You have to specify all inputs. Here is the help:")
   print_help(opt_parser)
@@ -59,7 +59,7 @@ if (is.null(opt$maneTranscripts) | is.null(opt$longestTranscripts) | is.null(opt
 ###Functions
 plotBox <- function(diffTable, plotMode, capVal){
 	p <- ggplot(diffTable, aes(x = "",y =Diff)) +geom_boxplot(outlier.shape = NA, width = 0.4) + geom_jitter(cex = 0.5,width = 0.1, alpha = 0.5)+
-		xlab(NULL) + ylab("Pairwise difference of CAGE-Seq signal")+
+		xlab(NULL) + ylab("Pairwise difference of CAGE-seq signal")+
 		theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 			legend.key=element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black"),
 			axis.text=element_text(size=12),
@@ -84,26 +84,26 @@ gtex$symGene <- paste0(gtex$symbol,"_",gtex$ensemblID)
 
 ##
 ##Subset to TSS (considering strand) and to expressed genes
-MLT <- fread(paste0("../../data/ref/",opt$maneTranscripts), select = c(1:4,6), data.table = FALSE)
-colnames(MLT) <- c("chr_MLT","startMLT","endMLT","symGene","strand")
-MLT <- MLT[MLT$symGene %in% gtex$symGene,]
-MLT <- MLT[order(MLT$symGene),]
-lT <- fread(paste0("../../data/ref/",opt$longestTranscripts), select = c(1:4,6), data.table = FALSE)
+cT <- fread(paste0("../../data/ref/",opt$canonicalTrans), select = c(1:4,6), data.table = FALSE)
+colnames(cT) <- c("chr_CT","startCT","endCT","symGene","strand")
+cT <- cT[cT$symGene %in% gtex$symGene,]
+cT <- cT[order(cT$symGene),]
+lT <- fread(paste0("../../data/ref/",opt$longestTrans), select = c(1:4,6), data.table = FALSE)
 colnames(lT) <- c("chr_lT","startLT","endLT","symGene","strand")
 lT <- lT[lT$symGene %in% gtex$symGene,]
 lT <- lT[order(lT$symGene),]
 
-mergedT <- merge(MLT, lT, by = c("symGene","strand"))
-mergedT <- mergedT[((abs(mergedT$startMLT - mergedT$startLT) > opt$minDist) & mergedT$strand == "+") | ((abs(mergedT$endMLT - mergedT$endLT) > opt$minDist) & mergedT$strand == "-"),]
+mergedT <- merge(cT, lT, by = c("symGene","strand"))
+mergedT <- mergedT[((abs(mergedT$startCT - mergedT$startLT) > opt$minDist) & mergedT$strand == "+") | ((abs(mergedT$endCT - mergedT$endLT) > opt$minDist) & mergedT$strand == "-"),]
 
-mergedT$endMLT[mergedT$strand == "+"] <- mergedT$startMLT[mergedT$strand == "+"] + opt$maxDist
+mergedT$endCT[mergedT$strand == "+"] <- mergedT$startCT[mergedT$strand == "+"] + opt$maxDist
 mergedT$endLT[mergedT$strand == "+"] <- mergedT$startLT[mergedT$strand == "+"] + opt$maxDist
-mergedT$startMLT[mergedT$strand == "+"] <- mergedT$startMLT[mergedT$strand == "+"] - opt$maxDist
+mergedT$startCT[mergedT$strand == "+"] <- mergedT$startCT[mergedT$strand == "+"] - opt$maxDist
 mergedT$startLT[mergedT$strand == "+"] <- mergedT$startLT[mergedT$strand == "+"] - opt$maxDist
 
-mergedT$startMLT[mergedT$strand == "-"] <- mergedT$endMLT[mergedT$strand == "-"] - opt$maxDist
+mergedT$startCT[mergedT$strand == "-"] <- mergedT$endCT[mergedT$strand == "-"] - opt$maxDist
 mergedT$startLT[mergedT$strand == "-"] <- mergedT$endLT[mergedT$strand == "-"] - opt$maxDist
-mergedT$endMLT[mergedT$strand == "-"] <- mergedT$endMLT[mergedT$strand == "-"] + opt$maxDist
+mergedT$endCT[mergedT$strand == "-"] <- mergedT$endCT[mergedT$strand == "-"] + opt$maxDist
 mergedT$endLT[mergedT$strand == "-"] <- mergedT$endLT[mergedT$strand == "-"] + opt$maxDist
 
 ##
@@ -113,22 +113,22 @@ cagePlus <- makeGRangesFromDataFrame(cagePlus,seqnames.field = "V1",start.field 
 cageMinus <- fread(paste0("../../data/cage/signals/",opt$cageMinus), data.table = FALSE)
 cageMinus <- makeGRangesFromDataFrame(cageMinus,seqnames.field = "V1",start.field = "V2", end.field = "V3",keep.extra.columns = TRUE,starts.in.df.are.0based = TRUE)
 
-maxMane <- vector("list",nrow(mergedT))
+maxCanon <- vector("list",nrow(mergedT))
 maxLongest <- vector("list",nrow(mergedT))
 for(i in 1:nrow(mergedT)){
-  maneTss=GRanges(seqnames=mergedT$chr_MLT[i],
-                  ranges=IRanges(start = mergedT$startMLT[i], mergedT$endMLT[i]))
+  canonTss=GRanges(seqnames=mergedT$chr_CT[i],
+                  ranges=IRanges(start = mergedT$startCT[i], mergedT$endCT[i]))
   longestTss=GRanges(seqnames=mergedT$chr_lT[i],
                   ranges=IRanges(start = mergedT$startLT[i], mergedT$endLT[i]))  
   if(mergedT$strand[i] == "+"){
   
-    #Plus MANE
-    cagePlusMane <- subsetByOverlaps(cagePlus, maneTss)
-    cagePlusMane <- max(cagePlusMane$V4)
-    if((is.infinite(cagePlusMane)) == TRUE){
-      maxMane[i] <- 0
-    }else if((!(is.infinite(cagePlusMane))) == TRUE){
-      maxMane[i] <- cagePlusMane
+    #Plus Canon
+    cagePlusCanon <- subsetByOverlaps(cagePlus, canonTss)
+    cagePlusCanon <- max(cagePlusCanon$V4)
+    if((is.infinite(cagePlusCanon)) == TRUE){
+      maxCanon[i] <- 0
+    }else if((!(is.infinite(cagePlusCanon))) == TRUE){
+      maxCanon[i] <- cagePlusCanon
     }
 	
     #Plus longest
@@ -141,13 +141,13 @@ for(i in 1:nrow(mergedT)){
     }
   }else if(mergedT$strand[i] == "-"){
   
-    #Minus MANE
-    cageMinusMane <- subsetByOverlaps(cageMinus, maneTss)
-    cageMinusMane <- max(cageMinusMane$V4)
-    if(is.infinite(cageMinusMane)){
-      maxMane[i] <- 0
-    }else if(!(is.infinite(cageMinusMane))){
-      maxMane[i] <- cageMinusMane
+    #Minus Canon
+    cageMinusCanon <- subsetByOverlaps(cageMinus, canonTss)
+    cageMinusCanon <- max(cageMinusCanon$V4)
+    if(is.infinite(cageMinusCanon)){
+      maxCanon[i] <- 0
+    }else if(!(is.infinite(cageMinusCanon))){
+      maxCanon[i] <- cageMinusCanon
     }
 	
     #Minus longest
@@ -161,14 +161,14 @@ for(i in 1:nrow(mergedT)){
   }
 }
 
-mergedT$maxMane <- unlist(maxMane)
+mergedT$maxCanon <- unlist(maxCanon)
 mergedT$maxLongest <- unlist(maxLongest)
-mergedT$Diff <- mergedT$maxMane - mergedT$maxLongest
+mergedT$Diff <- mergedT$maxCanon - mergedT$maxLongest
 
 #0-index
-mergedT$startMLT <- mergedT$startMLT -1
+mergedT$startCT <- mergedT$startCT -1
 mergedT$startLT <- mergedT$startLT -1
-mergedT$endMLT <- mergedT$endMLT -1
+mergedT$endCT <- mergedT$endCT -1
 mergedT$endLT <- mergedT$endLT -1
 write.table(mergedT,paste0("../../data/cage/cageResults/cage_minDist",opt$minDist,"_maxDist",opt$maxDist,"_",opt$tissue,"_","TPMCut",opt$gtexCut,"_cageTableFull.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
 
@@ -179,7 +179,7 @@ write.table(median(mergedT$Diff),paste0("../../data/cage/cageResults/cage_minDis
 
 ##
 ##Make Sign test
-differences <- data.frame(symGene = c(mergedT$symGene,mergedT$symGene),model = c(rep("MANE",nrow(mergedT)),rep("Longest",nrow(mergedT))), cageSignal = c(mergedT$maxMane, mergedT$maxLongest))
+differences <- data.frame(symGene = c(mergedT$symGene,mergedT$symGene),model = c(rep("Canonical",nrow(mergedT)),rep("Longest",nrow(mergedT))), cageSignal = c(mergedT$maxCanon, mergedT$maxLongest))
 stat.test <- differences %>%
   sign_test(cageSignal~model, detailed= TRUE)
 write.table(stat.test,paste0("../../data/cage/cageResults/cage_minDist",opt$minDist,"_maxDist",opt$maxDist,"_",opt$tissue,"_","TPMCut",opt$gtexCut,"_signTable.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
