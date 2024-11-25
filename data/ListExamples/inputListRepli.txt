@@ -1,0 +1,7 @@
+regType	Path
+Gene	/path/to/sample1Gene.bed
+Gene	/path/to/sample2Gene.bed
+Promoter	/path/to/sample1Promoter.bed
+Promoter	/path/to/sample2Promoter.bed
+Enhancer	/path/to/sample1Enhancer.bed
+Enhancer	/path/to/sample2Enhancer.bed

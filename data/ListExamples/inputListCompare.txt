@@ -1,0 +1,3 @@
+modelName	samplePath
+caABC	/path/to/caABCModel.txt.gz
+ABC	/path/to/ABCModel.txt.gz
