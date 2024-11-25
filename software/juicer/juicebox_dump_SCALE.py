@@ -1,3 +1,4 @@
+#This file is a a modified version of the juicebox_dump.py script from https://github.com/broadinstitute/ABC-Enhancer-Gene-Prediction/blob/main/workflow/scripts/, which allows to run it on SCALE-normalized Hi-C-files.
 import argparse
 import subprocess
 
