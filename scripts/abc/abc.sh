@@ -166,7 +166,7 @@ STARE_ABCpp -b abcAct/${sampleName}_LT/EnhancerList_act.bed -n 4 -a ref/gencode.
 
 ##
 ##caABC
-STARE_ABCpp -b abcAct/${sampleName}_CT/EnhancerList_act.bed -n 4 -a ref/gencode.v${gencodeVers}.annotation_CT.gtf -o finalModels/caABC_${sampleName}_CT -f abcHic/${sampleName} -k 5000 -t 0 -c 1 -q True -i 5_tss
+STARE_ABCpp -b abcAct/${sampleName}_CT/EnhancerList_act.bed -n 4 -a ref/gencode.v${gencodeVers}.annotation_CT.gtf -o finalModels/caABC_${sampleName}_CT -f abcHic/${sampleName} -k 5000 -t 0 -c 1 -q True -i all_tss
 
 echo "---"
 echo "---"

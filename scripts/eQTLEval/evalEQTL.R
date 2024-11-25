@@ -25,14 +25,20 @@ option_list = list(
   
   make_option("--inputList", type="character", default=NULL,
               help="Name of input list to use"),
-  
+
+  make_option("--typeAnno", type="character", default=NULL,
+              help="Path to abc-prepro file matching gene to genetype"),
+
+  make_option("--keepTypes", type="character", default="protein_coding,lncRNA",
+              help="Comma-separated string list of gencode-based annotations to keep"),  
+
   make_option("--minDist", type="numeric", default=NULL,
               help="Define minimum distance to TSS to define an enhancer. Set to -1 to consider all promoters"),
  
-  make_option("--gtexCut", type="numeric", default=NULL,
+  make_option("--gtexCut", type="numeric", default=1,
               help="Minimum TPM value of GTEx expression for a gene to be included"),
   
-  make_option("--caviarThres", type="numeric", default=NULL,
+  make_option("--caviarThres", type="numeric", default=0.8,
               help="eQTL cut-off"),
 
   make_option("--tissue", type="character", default=NULL,
@@ -50,9 +56,8 @@ option_list = list(
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser)
 
-if (is.null(opt$inputList) | is.null(opt$minDist) |
-    is.null(opt$gtexCut) | is.null(opt$caviarThres) | is.null(opt$tissue) |
-    is.null(opt$cap) | is.null(opt$compMod) | is.null(opt$outDir)) {
+if (is.null(opt$inputList) | is.null(opt$typeAnno) | is.null(opt$minDist) |
+    is.null(opt$tissue) | is.null(opt$cap) | is.null(opt$compMod) | is.null(opt$outDir)) {
   print("You have to specify all inputs. Here is the help:")
   print_help(opt_parser)
   quit()
@@ -91,6 +96,12 @@ gtex$ensemblID <- gsub("\\..*","",gtex$ensemblID)
 gtex <- gtex[gtex$tissueTPM >= opt$gtexCut,]
 
 ##
+##Filter for geneTypes
+geneTypes <- fread(input = opt$typeAnno, data.table = FALSE,header = FALSE, select = c(7,8))
+geneTypes <- geneTypes[geneTypes[,2] %in% unlist(strsplit(x = opt$keepTypes, split = ",")),]
+gtex <- gtex[gtex$ensemblID %in% geneTypes[,1],]
+
+##
 ##Process caviar data
 caviar <- fread(input = "../../data/GTEx/raw/GTEx_v8_finemapping_CAVIAR/CAVIAR_Results_v8_GTEx_LD_HighConfidentVariants.gz", data.table = FALSE, header = TRUE)
 colnames(caviar)[2] <- "ensemblID_CAVIAR"
@@ -103,19 +114,15 @@ caviar <- caviar[caviar$ensemblID_CAVIAR %in% gtex$ensemblID,]
 ##Process GTEx gtf data
 gtexGtf <- fread(input = "../../data/GTEx/raw/gencodeGTEx.gtf", data.table = FALSE, header = FALSE)
 gtexGtf <- gtexGtf[gtexGtf$V3 == "gene",]
-gtexGtfColsplit <- colsplit(gtexGtf$V9, pattern = "; ",names = c("ensemblID","transcript_id","gene_type","symbol","remaining"))
+gtexGtfColsplit <- colsplit(gtexGtf$V9,pattern = "; ",names = c("ensemblID","transcriptID","geneType","symbol","remaining"))
 gtexGtfColsplit <- gtexGtfColsplit[,c(1,4)]
 
 gtexGtfColsplit$ensemblID <- gsub(pattern = "gene_id \"",replacement = "",x = gtexGtfColsplit$ensemblID)
 gtexGtfColsplit$ensemblID <- gsub(pattern = "\"",replacement = "",x = gtexGtfColsplit$ensemblID)
 gtexGtfColsplit$ensemblID <- gsub(pattern = "\\..*",replacement = "",x = gtexGtfColsplit$ensemblID)
 
-gtexGtfColsplit$symbol <- gsub(pattern = "gene_name \"",replacement = "",x = gtexGtfColsplit$symbol)
-gtexGtfColsplit$symbol <- gsub(pattern = "\"",replacement = "",x = gtexGtfColsplit$symbol)
-gtexGtfColsplit$symbol <- gsub(pattern = "\\..*",replacement = "",x = gtexGtfColsplit$symbol)
-
-gtexGtfColsplit <- paste0(gtexGtfColsplit$ensemblID,"_",gtexGtfColsplit$symbol)
-gtexGtf <- data.frame(chrGtf = gtexGtf$V1, startGtf = gtexGtf$V4, endGtf = gtexGtf$V5, strand = gtexGtf$V7, geneSymbol = gtexGtfColsplit)
+gtexGtfColsplit <- gtexGtfColsplit$ensemblID
+gtexGtf <- data.frame(chrGtf = gtexGtf$V1, startGtf = gtexGtf$V4, endGtf = gtexGtf$V5, strand = gtexGtf$V7, ensemblID = gtexGtfColsplit)
 gtexGtfPlus <- gtexGtf[gtexGtf$strand == "+",]
 gtexGtfPlus$endGtf <- NULL
 gtexGtfPlus$strand <- NULL
@@ -149,11 +156,10 @@ for(i in 1:nrow(inputList)){
   abc <- abc[abc$ensemblID %in% gtex$ensemblID,]
   abc$modelName <-inputList$modelName[i]
   abc$peakEnsemblID <- paste0(abc$ensemblID,"_",abc$peakID)
-  abc$geneSymbol <- paste0(abc$ensemblID,"_",abc$symbol)
 
   #Remove regions outside of GTEx eQTL annotation borders
   abc <- abc %>%
-    left_join(gtexGtf, by = "geneSymbol",relationship = "many-to-many") %>%
+    left_join(gtexGtf, by = "ensemblID",relationship = "many-to-many") %>%
     filter(end > (TSS_PosGtf - 1000000) & end < (TSS_PosGtf + 1000000))
   if(exists("abcFull")){
     abcFull <- rbind(abcFull,abc)   
@@ -174,7 +180,6 @@ for(i in 1:nrow(inputList)){
   abc <- abc[abc$TSS_dist >  opt$minDist,]
   abc$ensemblID <- gsub("\\..*","",abc$ensemblID)
   abc$peakEnsemblID <- paste0(abc$ensemblID,"_",abc$peakID)
-  abc$geneSymbol <- paste0(abc$ensemblID,"_",abc$symbol)
 
   #Remove non-shared enhancers
   abc <- abc[abc$peakEnsemblID %in% abcFull$peakEnsemblID,]

@@ -28,11 +28,17 @@ option_list = list(
   
   make_option("--cageMinus", type="character", default=NULL,
               help="Name of cage seq minus strand file"),
+
+  make_option("--typeAnno", type="character", default=NULL,
+              help="Path to abc-prepro file matching gene to genetype"),
+
+  make_option("--keepTypes", type="character", default="protein_coding,lncRNA",
+              help="Comma-separated string list of gencode-based annotations to keep"),
 			  
   make_option("--tissue", type="character", default=NULL,
               help="Tissue to filter GTEx on"),
 			  
-  make_option("--gtexCut", type="numeric", default=NULL,
+  make_option("--gtexCut", type="numeric", default=1,
               help="minimum TPM threshold of expression"),
   
   make_option("--minDist", type="numeric", default=5000,
@@ -48,7 +54,7 @@ opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser)
 
 if (is.null(opt$canonicalTrans) | is.null(opt$longestTrans) | is.null(opt$cagePlus) | is.null(opt$cageMinus) |
-    is.null(opt$tissue) | is.null(opt$gtexCut) | is.null(opt$cap)){
+    is.null(opt$typeAnno) | is.null(opt$tissue) | is.null(opt$cap)){
   print("You have to specify all inputs. Here is the help:")
   print_help(opt_parser)
   quit()
@@ -81,6 +87,12 @@ colnames(gtex) <- c("ensemblID","symbol","tissueTPM")
 gtex$ensemblID <- gsub("\\..*","",gtex$ensemblID)
 gtex <- gtex[gtex$tissueTPM >= opt$gtexCut,]
 gtex$symGene <- paste0(gtex$symbol,"_",gtex$ensemblID)
+
+##
+##Filter for geneTypes
+geneTypes <- fread(input = opt$typeAnno, data.table = FALSE,header = FALSE, select = c(7,8))
+geneTypes <- geneTypes[geneTypes[,2] %in% unlist(strsplit(x = opt$keepTypes, split = ",")),]
+gtex <- gtex[gtex$ensemblID %in% geneTypes[,1],]
 
 ##
 ##Subset to TSS (considering strand) and to expressed genes
