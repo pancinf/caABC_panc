@@ -1,0 +1,1 @@
+The LICENSE file in this sub-directory corresponds to the juicebox_dump_SCALE.py script which is a modified version of the juicebox_dump.py script from https://github.com/broadinstitute/ABC-Enhancer-Gene-Prediction/blob/main/workflow/scripts/, which allows to run it on SCALE-normalized Hi-C-files.
