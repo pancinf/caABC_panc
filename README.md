@@ -24,7 +24,7 @@ In our model tissue, the pancreas, caABC shows **significant outperformance** co
 ### Install and download
 * Install environments
 	* Install miniconda https://docs.anaconda.com/miniconda/miniconda-install/
-	* Install environments from our provided **abc.yaml** and **evalAbc.yaml** by the command **conda env create -f environment.yaml**
+	* Install environments from our provided **abc.yml** and **evalAbc.yml** by the command **conda env create -f environment.yml**
 * Clone ABC
 	* Clone ABC from https://github.com/broadinstitute/ABC-Enhancer-Gene-Prediction?tab=readme-ov-file to the software folder
 	* We used version 25e7de9007a5880efc8e5340adb40a3d324f81c4
