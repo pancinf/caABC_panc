@@ -15,6 +15,7 @@ library(ggrepel)
 library(forcats)
 library(optparse)
 library(rstatix)
+library(precrec)
 library(plyr) ######################### LOAD BEFORE DPLYR #########################
 library(dplyr)
 
@@ -196,7 +197,6 @@ for(i in 1:nrow(inputList)){
   abcCaviarShort$eQTLMatch <- FALSE
   abcCaviarShort$eQTLMatch[abcCaviarShort$ensemblID == abcCaviarShort$ensemblID_CAVIAR] <- TRUE
   abcCaviarShort <- abcCaviarShort[!duplicated(abcCaviarShort[,'peakEnsemblID']),]
-  abcCaviarShort <- abcCaviarShort[abcCaviarShort$eQTLMatch == TRUE,]
   recall <- 0
   abcCaviarShort$recall <- recall
   for(j in 1:nrow(abcCaviarShort)){
@@ -218,7 +218,31 @@ for(i in 1:nrow(inputList)){
   }
 finalDF <- data.frame(recall = pltRec, abc = pltAbc, rankABC = pltRank, perc = pltPerc, model = pltName, eQTL = plteQTL,eQTLMatch = plteQTLMatch, ensemblID = pltEnsemblID, peakEnsemblID = pltpeakEnsemblID)
 finalDF <- finalDF[order(finalDF$eQTL, finalDF$ensemblID),]
+
+  #ROC and PRC curves
+  scoresModel1 <- 1 - (finalDF$recall[finalDF$model == unique(finalDF$model)[1]])
+  labelsModel1 <- finalDF$eQTLMatch[finalDF$model == unique(finalDF$model)[1]]
+  scoresModel2 <- 1 - (finalDF$recall[finalDF$model == unique(finalDF$model)[2]])
+  labelsModel2 <- finalDF$eQTLMatch[finalDF$model == unique(finalDF$model)[2]]
+  scoresCombined <- join_scores(scoresModel1,scoresModel2)
+  labelsCombined <- join_labels(labelsModel1,labelsModel2)
+  mmmdat <- mmdata(scores = scoresCombined, labels = labelsCombined,
+                      modnames = c(unique(finalDF$model)[1],unique(finalDF$model)[2]), dsids = c(1,2))
+
+  mscurves <- evalmod(mmmdat)
+  png(filename = paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod,"_minDist",opt$minDist,"_",opt$tissue,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_evalCurves.png"), res = 72*9, width = 480*9,height = 480*9)
+  p <- plot(mscurves, "PRC")
+  dev.off()
+  pdf(file = paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod,"_minDist",opt$minDist,"_",opt$tissue,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_evalCurves.pdf"))
+  p <- plot(mscurves, "PRC")
+  dev.off()
+
+  aucs <- auc(mscurves)
+  write.table(aucs, paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod,"_minDist",opt$minDist,"_",opt$tissue,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_AUCs.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
+
+
 write.table(finalDF, paste0("../../data/GTEx/evalGTEx/ev/",opt$outDir,"/",opt$compMod,"_minDist",opt$minDist,"_",opt$tissue,"_TPMCut",opt$gtexCut,"_caviarCut",opt$caviarThres,"_finalDF.txt"),sep = "\t",append = FALSE,row.names = FALSE,col.names = TRUE,quote = FALSE)
+finalDF <- finalDF[finalDF$eQTLMatch == TRUE,]
 
 ##
 ##Write and plot paired differences + their statistics + number of "+","0" and "-"

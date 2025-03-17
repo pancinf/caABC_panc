@@ -18,7 +18,6 @@ mane.bed
 *gene.bed
 *tss.bed
 *log
-*.txt
 runfile.sh
 *.pdf
 *.png
@@ -41,3 +40,15 @@ ABC-Enhancer-Gene-Prediction/
 *promotersTargets.bed
 *enhancers.bed
 *enhancersTargets.bed
+*Repli.bed
+data/GTEx/recSub/sub/*
+data/GTEx/caAbcRepli/caAbcRepliInList/*
+data/GTEx/caAbcRepli/caAbcRepliOut/*
+data/GTEx/evalGTEx/*
+data/cage/cageResults/*
+runfile.txt
+runfile.sh
+runfile2.sh
+data/abcAct/*
+data/GTEx/recSub/targetGenes/targets.txt
+data/abcReg/*
