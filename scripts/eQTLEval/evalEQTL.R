@@ -145,6 +145,7 @@ plteQTL <- c()
 plteQTLMatch <- c()
 pltEnsemblID <- c()
 pltpeakEnsemblID <- c()
+pltPeak <- c() 
 
 ##
 ##Make table of overlapping regions for both models
@@ -215,8 +216,12 @@ for(i in 1:nrow(inputList)){
   plteQTLMatch <- c(plteQTLMatch,abcCaviarShort$eQTLMatch)
   pltEnsemblID <- c(pltEnsemblID,abcCaviarShort$ensemblID)
   pltpeakEnsemblID <- c(pltpeakEnsemblID,abcCaviarShort$peakEnsemblID)
+  pltPeak <- c(pltPeak,abcCaviarShort$peakID)
   }
-finalDF <- data.frame(recall = pltRec, abc = pltAbc, rankABC = pltRank, perc = pltPerc, model = pltName, eQTL = plteQTL,eQTLMatch = plteQTLMatch, ensemblID = pltEnsemblID, peakEnsemblID = pltpeakEnsemblID)
+finalDF <- data.frame(recall = pltRec, abc = pltAbc, rankABC = pltRank, perc = pltPerc, model = pltName, eQTL = plteQTL,eQTLMatch = plteQTLMatch, ensemblID = pltEnsemblID, peakEnsemblID = pltpeakEnsemblID, peak = pltPeak)
+#Keep only eQTLs with at correct target gene present
+allPos <- finalDF$peak[finalDF$eQTLMatch == TRUE]
+finalDF <- finalDF[finalDF$peak %in% allPos,]
 finalDF <- finalDF[order(finalDF$eQTL, finalDF$ensemblID),]
 
   #ROC and PRC curves
