@@ -18,10 +18,12 @@ fi
 mkdir -p ../../data/memeEval/ame/
 mkdir -p ../../data/memeEval/ame/${1}_${2}/
 mkdir -p ../../data/memeEval/tfbs/
-wget -O ../../data/memeEval/tfbs/H12CORE_meme_format.meme https://hocomoco12.autosome.org/final_bundle/hocomoco12/H12CORE/formatted_motifs/H12CORE_meme_format.meme
+wget -O ../../data/memeEval/tfbs/H12CORE_meme_format.meme https://hocomoco12.autosome.org/final_bundle/hocomoco12/H12CORE/formatted_motifs/H12CORE_meme_format.meme -nc
 
 ##
-##Index reference
+##Get and index reference
+wget -O ../../data/ref/hg38.fa.gz https://hgdownload.soe.ucsc.edu/goldenpath/hg38/bigZips/hg38.fa.gz -nc
+gunzip -c ../../data/ref/hg38.fa.gz > ../../data/ref/hg38.fa
 samtools faidx ../../data/ref/hg38.fa
 
 ##
