@@ -119,3 +119,10 @@ In our model tissue, the pancreas, caABC shows **significant outperformance** co
 	* keep in mind that there might be samples with more than 1 H3K27AC file from ENCODE and consider this in the raw-download script (downloadRaw.sh).
 	* assign the correct tissue name from GTEx for correct eQTL and expression extraction.
 * You can speed up and reduce complexity by ignoring the CAGE-seq evaluation and model comparison if you just want to get the final caABC predictions.
+
+## TFBS enrichment
+This novel addaption of the framework allows for TFBS enrichment analysis in caABC regions.
+One has to provide the name of the caABC file and the name of the gene list (e.g. check the provided list: digestiveHpa25.txt).
+
+Example:
+./caABCAme.sh caABC_pancreas07_mergedRepli digestiveHpa25
