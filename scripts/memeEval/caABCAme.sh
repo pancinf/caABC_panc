@@ -18,7 +18,7 @@ fi
 mkdir -p ../../data/memeEval/ame/
 mkdir -p ../../data/memeEval/ame/${1}_${2}/
 mkdir -p ../../data/memeEval/tfbs/
-wget -O ../../data/memeEval/tfbs/H12CORE_meme_format.meme https://hocomoco12.autosome.org/final_bundle/hocomoco12/H12CORE/formatted_motifs/H12CORE_meme_format.meme -nc
+wget -O ../../data/memeEval/tfbs/H14CORE_meme_format.meme https://hocomoco14.autosome.org/final_bundle/hocomoco14/H14CORE/formatted_motifs/H14CORE_meme_format.meme
 
 ##
 ##Get and index reference
@@ -41,4 +41,9 @@ done
 
 ##
 ##Apply AME
-ame --seed 1234 --evalue-report-threshold 10 -oc ../../data/memeEval/ame/${1}_${2}/ameOutHocomoco --control ../../data/memeEval/ame/${1}_${2}/hg38RegRegionsControlDust.fa ../../data/memeEval/ame/${1}_${2}/hg38RegRegionsCaseDust.fa ../../data/memeEval/tfbs/H12CORE_meme_format.meme
+ame --seed 1234 --evalue-report-threshold 0.05 -oc ../../data/memeEval/ame/${1}_${2}/ameOutHocomoco --control ../../data/memeEval/ame/${1}_${2}/hg38RegRegionsControlDust.fa ../../data/memeEval/ame/${1}_${2}/hg38RegRegionsCaseDust.fa ../../data/memeEval/tfbs/H14CORE_meme_format.meme
+ame --seed 1234 --evalue-report-threshold 0.05 -oc ../../data/memeEval/ame/${1}_${2}/ameOutHocomocoShuf --control --shuffle-- ../../data/memeEval/ame/${1}_${2}/hg38RegRegionsCaseDust.fa ../../data/memeEval/tfbs/H14CORE_meme_format.meme
+
+##
+##Merge AME
+Rscript --vanilla mergeAme.R

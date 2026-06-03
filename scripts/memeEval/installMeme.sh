@@ -22,3 +22,7 @@ cd ../../software/meme/meme-5.5.5/
 make
 make test
 make install
+
+##
+##Add path
+echo 'export PATH=$HOME/meme/bin:$PATH' >> ~/.bashrc
